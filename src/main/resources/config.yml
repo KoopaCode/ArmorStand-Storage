@@ -1,0 +1,25 @@
+# ArmorStandStorage Configuration
+
+# Worlds where armor stand storage is disabled
+# Leave empty to allow in all worlds
+# Example:
+disabled-worlds:
+  #- world_KC_SPAWN
+  #- world_event
+  #- minigames_lobby
+
+# Debug mode - set to true for detailed logging
+debug: false
+
+# Messages
+messages:
+  no-permission: "§cYou don't have permission to use armor stand storage!"
+  must-sneak: "§cYou must be sneaking to use this!"
+  blocked-world: "§cArmor stand storage is disabled in this world!"
+
+# Storage settings
+storage:
+  # Inventory title
+  inventory-title: "Armor Stand Storage"
+  # Number of rows in the storage (must be between 1 and 6)
+  inventory-rows: 3 

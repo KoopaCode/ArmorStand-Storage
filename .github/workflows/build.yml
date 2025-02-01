@@ -1,0 +1,90 @@
+name: Build
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Get Project Info
+      run: |
+        echo "PLUGIN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+        echo "PLUGIN_NAME=$(mvn help:evaluate -Dexpression=project.name -q -DforceStdout)" >> $GITHUB_ENV
+        echo "PLUGIN_FILE=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)" >> $GITHUB_ENV
+        
+    - name: Build with Maven
+      run: mvn -B package --file pom.xml
+
+    - name: Debug Directory
+      run: ls -la target/
+      
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PLUGIN_FILE }}-${{ env.PLUGIN_VERSION }}
+        path: target/${{ env.PLUGIN_FILE }}-${{ env.PLUGIN_VERSION }}.jar
+        retention-days: 5
+
+    - name: Send Build Notification
+      if: always()
+      uses: sarisia/actions-status-discord@v1
+      with:
+        webhook: ${{ secrets.DISCORD_WEBHOOK }}
+        title: "${{ job.status == 'success' && '✅ Build Success!' || '❌ Build Failed!' }}"
+        description: |
+          **${{ env.PLUGIN_NAME }} v${{ env.PLUGIN_VERSION }}**
+          By ${{ github.actor }} • ${{ github.sha }}
+          ${{ github.repository }}
+        color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
+        username: "🏺Artifact Build's"
+        avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+
+  release:
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Download Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.PLUGIN_FILE }}-${{ env.PLUGIN_VERSION }}
+        
+    - name: Upload Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ${{ env.PLUGIN_FILE }}-${{ env.PLUGIN_VERSION }}.jar
+        fail_on_unmatched_files: true
+
+    - name: Send Release Notification
+      if: always()
+      uses: sarisia/actions-status-discord@v1
+      with:
+        webhook: ${{ secrets.DISCORD_WEBHOOK }}
+        title: "${{ job.status == 'success' && '🎉 Release Published!' || '❌ Release Failed!' }}"
+        description: |
+          **${{ env.PLUGIN_NAME }} v${{ env.PLUGIN_VERSION }}**
+          ${{ job.status == 'success' && '➜ https://github.com/${{ github.repository }}/releases/latest' || '' }}
+        color: ${{ job.status == 'success' && '0x00ff00' || '0xff0000' }}
+        username: "🏺Artifact Build's"
+        avatar_url: "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" 
