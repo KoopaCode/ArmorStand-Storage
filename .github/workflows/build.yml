@@ -41,7 +41,7 @@ jobs:
       with:
         name: ${{ env.PLUGIN_FILE }}-${{ env.PLUGIN_VERSION }}
         path: target/${{ env.PLUGIN_FILE }}-${{ env.PLUGIN_VERSION }}.jar
-        retention-days: 5
+        retention-days: 30
 
     - name: Send Build Notification
       if: always()
